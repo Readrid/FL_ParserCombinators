@@ -35,10 +35,18 @@ LBAR      = lexeme(string('|'))
 
 @generate
 def prolog():
-    module_declaration = yield many1(module)
-    types = yield many(typedef)
+    module_declaration = yield module
+    types     = yield many(typedef)
     relations = yield many(relation)
-    return (module_declaration, types, relations)
+    showTypes = ') ('.join(types)
+    showRel   = ') ('.join(relations)
+    if showRel == showTypes == '':
+        return  f"PROG ({module_declaration})"
+    if showRel == '':
+        return f"PROG ({module_declaration}) ({') ('.join(types)})"
+    if showTypes == '':
+        return f"PROG ({module_declaration}) ({') ('.join(relations)})"
+    return f"PROG ({module_declaration}) ({') ('.join(types)}) ({') ('.join(relations)})"
  
 @generate
 def showID():
@@ -85,7 +93,7 @@ def relbody():
 def shortrel():
     head = yield atom
     yield DOT
-    return f'REL {head}'
+    return f'REL ({head})'
 
 @generate
 def brace_body():
@@ -97,7 +105,7 @@ def brace_body():
 @generate
 def braceVar():
     yield LPAREN
-    ex = yield atomvarscope
+    ex = yield varscope
     yield RPAREN
     return ex
 
@@ -184,15 +192,14 @@ def listSeq():
     return f'ATOMSEQ ({l}) ({seq})'
 
 
-
 listsugare = listHT ^ listsimple
 
 atom     = idANDatomseq ^ showID
 atomvar  = varSeq ^ showVAR
 atomlist = listSeq ^ listsimple
 atombody = brace_body ^ atom
-atomvarscope = braceVar ^ showVAR
-atomseq  = longAtomSeq ^ brace_body ^ atomvarscope ^ atomlist ^ atom ^ atomvar
+varscope = braceVar ^ showVAR
+atomseq  = longAtomSeq ^ brace_body ^ varscope ^ atomlist ^ atom ^ atomvar
 
 term        = brace_disj ^ atom
 conjuction  = conj ^ term
@@ -201,5 +208,3 @@ disjunction = disj ^ conjuction
 relation = shortrel ^ relbody
 
 typeelem = braceTypeelem ^ atom ^ VAR
-
-program = ignore >> atom
