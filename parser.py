@@ -13,8 +13,8 @@ reserved = {
 
 lexeme = lambda p: p << ignore
 def checkReserved(p):
-    if reserved.get(str(p)) != None:
-        raise ParseError(ParseError.loc())
+    if reserved.get(p) != None:
+        raise SyntaxError(f"SyntaxError: expected ID but '{p}' found")
     return p
                          
 
@@ -142,7 +142,7 @@ def typedef():
 
 @generate
 def typeseq():
-    seq = yield sepBy(typeelem, ARROW)
+    seq = yield sepBy1(typeelem, ARROW)
     typeseqStr = 'TYPESEQ (' + ') ('.join(seq) + ')'
     return typeseqStr
 
