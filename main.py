@@ -2,14 +2,13 @@ from typing import List
 import sys
 
 from parser import *
-#from parsec import *
 
 def CLI(cmd):
     program = ignore >> prolog
     if cmd == "--atom":
         program = ignore >> atom
     elif cmd == "--typeexpr":
-        program = ignore >> typeelem
+        program = ignore >> typeseq
     elif cmd == "--typedef":
         program = ignore >> typedef
     elif cmd == "--module":

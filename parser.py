@@ -96,40 +96,6 @@ def shortrel():
     return f'REL ({head})'
 
 @generate
-def brace_body():
-    yield LPAREN
-    ex = yield atombody
-    yield RPAREN
-    return ex
-
-@generate
-def braceVar():
-    yield LPAREN
-    ex = yield varscope
-    yield RPAREN
-    return ex
-
-@generate
-def idANDatomseq():
-    ident = yield ID
-    seq = yield atomseq
-    return f'ATOM (ID {ident}) ({seq})'
-
-@generate
-def longAtomSeq():
-    yield LPAREN
-    ex = yield atombody
-    yield RPAREN
-    seq = yield atomseq
-    return f'ATOMSEQ ({ex}) ({seq})'
-
-@generate
-def varSeq():
-    var = yield showVAR
-    seq = yield atomseq
-    return f'ATOMSEQ ({var}) ({seq})'
-
-@generate
 def module():
     yield MODULE
     strID = yield showID
@@ -161,7 +127,7 @@ def foldr(l, length):
     if len(l) == 0:
         return ''
     if len(l) == 1:
-        return f'ATOM (ID cons) (ATOM ({l[0]}) (ID nil)' + ')'*length
+        return f'ATOM (ID cons) (ATOM ({l[0]}) (ATOM (ID nil))' + ')'*length
     return f'ATOM (ID cons) ({l[0]} (' + foldr(l[1:], length)
 
 @generate
@@ -191,15 +157,22 @@ def listSeq():
     seq = yield atomseq
     return f'ATOMSEQ ({l}) ({seq})'
 
+@generate
+def atomscope():
+    yield LPAREN
+    ex = yield atom
+    yield RPAREN
+    return ex 
+
+@generate
+def atom():
+    ident = yield showID
+    atoms = yield many(atomscope ^ listsugare ^ showID ^ showVAR)
+    if len(atoms) == 0:
+        return f'ATOM ({ident})'
+    return f"ATOM ({ident}) ({') ('.join(atoms)})"
 
 listsugare = listHT ^ listsimple
-
-atom     = idANDatomseq ^ showID
-atomvar  = varSeq ^ showVAR
-atomlist = listSeq ^ listsimple
-atombody = brace_body ^ atom
-varscope = braceVar ^ showVAR
-atomseq  = longAtomSeq ^ brace_body ^ varscope ^ atomlist ^ atom ^ atomvar
 
 term        = brace_disj ^ atom
 conjuction  = conj ^ term
