@@ -2,7 +2,7 @@ from parser import *
 from parsec import *
 
 if __name__ == '__main__':
-    data = 'type a b -> f.' 
+    data = 'f (cons x nil)' 
     try:
         print(program.parse_strict(data))
     except ParseError as ex:

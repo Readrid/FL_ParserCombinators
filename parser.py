@@ -29,6 +29,9 @@ DISJ      = lexeme(string(';'))
 CONJ      = lexeme(string(','))
 CORKSCREW = lexeme(string(':-'))
 ARROW     = lexeme(string('->'))
+LBR       = lexeme(string('['))
+RBR       = lexeme(string(']'))
+LBAR      = lexeme(string('|'))
 
 @generate
 def prolog():
@@ -36,7 +39,7 @@ def prolog():
     types = yield many(typedef)
     relations = yield many(relation)
     return (module_declaration, types, relations)
-
+ 
 @generate
 def showID():
     ident = yield ID
@@ -146,11 +149,50 @@ def typeseq():
     typeseqStr = 'TYPESEQ (' + ') ('.join(seq) + ')'
     return typeseqStr
 
+def foldr(l, length):
+    if len(l) == 0:
+        return ''
+    if len(l) == 1:
+        return f'ATOM (ID cons) (ATOM ({l[0]}) (ID nil)' + ')'*length
+    return f'ATOM (ID cons) ({l[0]} (' + foldr(l[1:], length)
+
+@generate
+def listelems():
+    l = yield sepBy(listsugare ^ atom ^ VAR, CONJ)
+    return foldr(l, len(l))
+
+@generate
+def listsimple():
+    yield LBR
+    elems = yield listelems
+    yield RBR
+    return elems
+
+@generate
+def listHT():
+    yield LBR
+    head = yield (listsugare ^ atom ^ VAR)
+    yield LBAR
+    tail = yield showVAR
+    yield RBR
+    return f'ATOM (ID cons) (ATOM ({head}) ({tail}))'
+
+@generate
+def listSeq():
+    l = yield listsugare
+    seq = yield atomseq
+    return f'ATOMSEQ ({l}) ({seq})'
+
+
+
+listsugare = listHT ^ listsimple
+
 atom     = idANDatomseq ^ showID
 atomvar  = varSeq ^ showVAR
+atomlist = listSeq ^ listsimple
 atombody = brace_body ^ atom
 atomvarscope = braceVar ^ showVAR
-atomseq  = longAtomSeq ^ brace_body ^ atomvarscope ^ atom ^ atomvar
+atomseq  = longAtomSeq ^ brace_body ^ atomvarscope ^ atomlist ^ atom ^ atomvar
 
 term        = brace_disj ^ atom
 conjuction  = conj ^ term
@@ -160,4 +202,4 @@ relation = shortrel ^ relbody
 
 typeelem = braceTypeelem ^ atom ^ VAR
 
-program = ignore >> typedef
+program = ignore >> atom
