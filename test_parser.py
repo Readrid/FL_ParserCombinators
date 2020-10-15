@@ -96,7 +96,11 @@ class TestPrologParser(unittest.TestCase):
         self.assertRaises(ParseError, program.parse_strict, '[A,B')
         self.assertRaises(ParseError, program.parse_strict, '][')
 
+    def test_prog(self):
+        program = ignore >> prolog
 
+        self.assertEqual(program.parse_strict('module test.\n\ntype fl hw -> parser -> automata.\n\nex :- f , k.\nrec :- fl.'), 
+            'PROG (MODULE (ID test)) (TYPEDEF (ID fl) (TYPESEQ (ATOM (ID hw)) (ATOM (ID parser)) (ATOM (ID automata)))) (REL (ATOM (ID ex)) (CONJ (ATOM (ID f)) (ATOM (ID k)))) (REL (ATOM (ID rec)) (ATOM (ID fl)))') 
     
 
 

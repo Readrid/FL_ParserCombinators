@@ -37,7 +37,7 @@ def main(args_str: List[str]):
         data = inputFile.read()
     
     with open(args_str[fileindx] + '.out', 'w') as outputFile:
-        #sys.stdout = outputFile
+        sys.stdout = outputFile
         try:
             print(program.parse_strict(data))
         except ParseError as ex:
