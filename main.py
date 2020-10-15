@@ -29,10 +29,10 @@ def main(args_str: List[str]):
     if len(args_str) > 1:
         program = CLI(args_str[0])
         fileindx = 1
-
+ 
     if program == None:
         return
-
+    
     with open(args_str[fileindx], 'r') as inputFile:
         data = inputFile.read()
     
@@ -41,10 +41,13 @@ def main(args_str: List[str]):
         try:
             print(program.parse_strict(data))
         except ParseError as ex:
+            print(ex)
             line, pos = ex.loc().split(':')
-            print(f"Syntax error: line {line}")
+            print(f"Syntax error: line {int(line) + 1}")
         except SyntaxError as ex:
             print(ex.args[0])
+        except AttributeError:
+            print("Syntax error")
 
 
 if __name__ == '__main__':

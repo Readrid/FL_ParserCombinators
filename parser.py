@@ -4,7 +4,8 @@ from parsec import *
 
 whitespace = regex(r'\s+', re.MULTILINE)
 tabs       = regex(r'\t+', re.MULTILINE)
-ignore     = many(whitespace ^ tabs)
+endl       = regex(r'\n+', re.MULTILINE)
+ignore     = many((whitespace ^ tabs ^ endl))
 
 reserved = {
     'module' : 'MODULE',
@@ -19,8 +20,8 @@ def checkReserved(p):
                          
 
 ID        = lexeme(regex(r'[a-z_][a-zA-Z_0-9]*')).parsecmap(checkReserved)
-MODULE    = lexeme(string('module'))
-TYPE      = lexeme(string('type'))
+MODULE    = lexeme(regex(r'module[\s\t\n]+'))
+TYPE      = lexeme(string('type '))
 VAR       = lexeme(regex(r'[A-Z][a-zA-Z_0-9]*'))
 LPAREN    = lexeme(string('('))
 RPAREN    = lexeme(string(')'))
@@ -105,7 +106,7 @@ def module():
 @generate
 def braceTypeelem():
     yield LPAREN
-    ex = yield typeseq
+    ex = yield typeelem
     yield RPAREN
     return ex
 
@@ -119,7 +120,7 @@ def typedef():
 
 @generate
 def typeseq():
-    seq = yield sepBy1(typeelem, ARROW)
+    seq = yield sepBy1(atom ^ showVAR ^ typeelem, ARROW)
     typeseqStr = 'TYPESEQ (' + ') ('.join(seq) + ')'
     return typeseqStr
 
@@ -127,13 +128,15 @@ def foldr(l, length):
     if len(l) == 0:
         return ''
     if len(l) == 1:
-        return f'ATOM (ID cons) (ATOM ({l[0]}) (ATOM (ID nil))' + ')'*length
-    return f'ATOM (ID cons) ({l[0]} (' + foldr(l[1:], length)
+        return f'ATOM (ID cons) ({l[0]}) (ID nil)' + ')'*length
+    return f'ATOM (ID cons) ({l[0]}) (' + foldr(l[1:], length)
 
 @generate
 def listelems():
-    l = yield sepBy(listsugare ^ atom ^ VAR, CONJ)
-    return foldr(l, len(l))
+    head = yield listsugare ^ atom ^ showVAR
+    tail = yield many(CONJ >> (listsugare ^ atom ^ showVAR))
+    l = [head] + tail
+    return foldr(l, len(l) - 1)
 
 @generate
 def listsimple():
@@ -149,30 +152,32 @@ def listHT():
     yield LBAR
     tail = yield showVAR
     yield RBR
-    return f'ATOM (ID cons) (ATOM ({head}) ({tail}))'
+    return f'ATOM (ID cons) ({head}) ({tail})'
 
 @generate
-def listSeq():
-    l = yield listsugare
-    seq = yield atomseq
-    return f'ATOMSEQ ({l}) ({seq})'
+def emptyList():
+    yield LBR
+    yield RBR
+    return 'ATOM (ID nil)'
+
+listsugare = emptyList ^ listHT ^ listsimple
 
 @generate
-def atomscope():
+def braceAtom():
     yield LPAREN
-    ex = yield atom
+    ex = yield atomscope
     yield RPAREN
     return ex 
 
 @generate
 def atom():
     ident = yield showID
-    atoms = yield many(atomscope ^ listsugare ^ showID ^ showVAR)
+    atoms = yield many(listsugare ^ showID ^ showVAR ^ atomscope)
     if len(atoms) == 0:
         return f'ATOM ({ident})'
     return f"ATOM ({ident}) ({') ('.join(atoms)})"
 
-listsugare = listHT ^ listsimple
+atomscope = braceAtom ^ atom
 
 term        = brace_disj ^ atom
 conjuction  = conj ^ term
@@ -180,4 +185,4 @@ disjunction = disj ^ conjuction
 
 relation = shortrel ^ relbody
 
-typeelem = braceTypeelem ^ atom ^ VAR
+typeelem = braceTypeelem ^ typeseq 
