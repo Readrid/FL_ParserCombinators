@@ -35,7 +35,7 @@ RBR       = lexeme(string(']'))
 LBAR      = lexeme(string('|'))
 
 @generate
-def prolog():
+def prolog_with_module():
     module_declaration = yield module
     types     = yield many(typedef)
     relations = yield many(relation)
@@ -48,7 +48,21 @@ def prolog():
     if showTypes == '':
         return f"PROG ({module_declaration}) ({') ('.join(relations)})"
     return f"PROG ({module_declaration}) ({') ('.join(types)}) ({') ('.join(relations)})"
- 
+
+@generate
+def prolog_without_module():
+    types     = yield many(typedef)
+    relations = yield many(relation)
+    showTypes = ') ('.join(types)
+    showRel   = ') ('.join(relations)
+    if showRel == '':
+        return f"PROG ({') ('.join(types)})"
+    if showTypes == '':
+        return f"PROG ({') ('.join(relations)})"
+    return f"PROG ({') ('.join(types)}) ({') ('.join(relations)})"
+
+prolog = prolog_with_module ^ prolog_without_module
+
 @generate
 def showID():
     ident = yield ID
